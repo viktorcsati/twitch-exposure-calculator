@@ -6,12 +6,21 @@ function App() {
   const [ccv, setCcv] = useState(10)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [hideNonGames, setHideNonGames] = useState(true)
+
+  // List of keywords to identify non-game categories
+  const nonGameKeywords = ["ASMR", "Chatting", "Art", "Zoos", "Pools", "Hot Tubs", "Music", "Talk Shows", "Events", "Software"]
 
   const fetchRecs = async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/recommend?ccv=${ccv}`)
-      const data = await response.json()
+      let data = await response.json()
+      
+      if (hideNonGames) {
+        data = data.filter(game => !nonGameKeywords.some(k => game.game_name.includes(k)))
+      }
+      
       setRecommendations(data)
     } catch (error) {
       console.error("Failed to fetch:", error)
@@ -24,8 +33,7 @@ function App() {
     try {
       const response = await fetch('/api/collect-now', { method: 'POST' })
       if (response.ok) {
-        // Wait a few seconds for Twitch to respond and DB to save
-        await new Promise(resolve => setTimeout(resolve, 5000))
+        await new Promise(resolve => setTimeout(resolve, 3000))
         await fetchRecs()
       }
     } catch (error) {
@@ -34,32 +42,57 @@ function App() {
     setUpdating(false)
   }
 
+  const syncCcv = async () => {
+    try {
+      const resp = await fetch('/api/user-stats')
+      const stats = await resp.json()
+      if (stats.ccv !== undefined) {
+        setCcv(stats.ccv)
+      }
+    } catch (e) {
+      console.error("Sync failed", e)
+    }
+  }
+
   useEffect(() => {
     fetchRecs()
-  }, [ccv])
+  }, [ccv, hideNonGames])
 
   return (
     <div className="dashboard">
       <header>
         <div className="brand">
           <h1>Twitch Exposure Calculator</h1>
-          <button 
-            className={`update-btn ${updating ? 'spinning' : ''}`} 
-            onClick={handleUpdate}
-            disabled={updating}
-          >
-            {updating ? 'Fetching Twitch Data...' : 'Refresh Data Now'}
-          </button>
+          <div className="button-group">
+            <button 
+              className={`update-btn ${updating ? 'spinning' : ''}`} 
+              onClick={handleUpdate}
+              disabled={updating}
+            >
+              {updating ? 'Fetching...' : 'Refresh Database'}
+            </button>
+            <label className="toggle">
+              <input 
+                type="checkbox" 
+                checked={hideNonGames} 
+                onChange={() => setHideNonGames(!hideNonGames)} 
+              />
+              Hide Non-Games (Zoos, Art, etc.)
+            </label>
+          </div>
         </div>
+        
         <div className="controls">
-          <label>Your Avg Viewers: <strong>{ccv}</strong></label>
-          <input 
-            type="range" 
-            min="0" 
-            max="500" 
-            value={ccv} 
-            onChange={(e) => setCcv(e.target.value)} 
-          />
+          <label>Target CCV:</label>
+          <div className="ccv-input-group">
+            <input 
+              type="number" 
+              value={ccv} 
+              onChange={(e) => setCcv(parseInt(e.target.value) || 0)} 
+            />
+            <button onClick={syncCcv} title="Sync with my Twitch stats">Sync</button>
+          </div>
+          <p className="hint">We use this to find games where you'd be in the top rows.</p>
         </div>
       </header>
 
@@ -69,8 +102,8 @@ function App() {
         <div className="game-grid">
           {recommendations.length === 0 && !loading ? (
              <div className="no-data">
-               <p>No data found in database.</p>
-               <button onClick={handleUpdate}>Fetch Initial Data</button>
+               <p>No data found or all categories filtered out.</p>
+               <button onClick={handleUpdate}>Fetch Data</button>
              </div>
           ) : (
             recommendations.map((game) => (
@@ -85,12 +118,12 @@ function App() {
                 <div className="game-info">
                   <h3>{game.game_name}</h3>
                   <div className="metric">
-                    <span>Saturation:</span>
+                    <span>Saturation: {game.saturation_percent}%</span>
                     <div className="bar-bg">
                       <div className="bar-fill" style={{ width: `${game.saturation_percent}%`, backgroundColor: game.saturation_percent > 80 ? '#e74c3c' : '#3498db' }}></div>
                     </div>
                   </div>
-                  <p>Avg {game.avg_viewers_per_channel} viewers/channel</p>
+                  <p className="vpc">Avg {game.avg_viewers_per_channel} view/channel</p>
                 </div>
               </div>
             ))
