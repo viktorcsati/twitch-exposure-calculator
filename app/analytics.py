@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from . import models, schemas
 from typing import List
+import re
 
 def calculate_score(total_viewers: int, total_channels: int, top_10_share: float, user_ccv: int) -> float:
     # 1. Opportunity: 1 - saturation (higher is better)
@@ -45,13 +46,18 @@ def get_recommendations(db: Session, user_ccv: int = 0) -> List[schemas.Recommen
         density = m.total_viewers / (m.total_channels if m.total_channels > 0 else 1)
         score = calculate_score(m.total_viewers, m.total_channels, m.top_10_viewer_share, user_ccv)
         
+        # Robustly replace {width}x{height} or any existing 123x456 dimensions with 600x800
+        art_url = m.game.box_art_url
+        art_url = re.sub(r'\{width\}x\{height\}', '600x800', art_url)
+        art_url = re.sub(r'\d+x\d+', '600x800', art_url)
+        
         recommendations.append(schemas.Recommendation(
             game_id=m.game_id,
             game_name=m.game.name,
             discoverability_score=round(score * 100, 2),
             avg_viewers_per_channel=round(density, 2),
             saturation_percent=round(m.top_10_viewer_share * 100, 2),
-            box_art_url=m.game.box_art_url.replace("{width}", "600").replace("{height}", "800")
+            box_art_url=art_url
         ))
 
     # Sort by score descending

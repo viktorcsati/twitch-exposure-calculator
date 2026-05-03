@@ -99,13 +99,20 @@ async def search_game(q: str = Query(None), id: str = Query(None), ccv: int = Qu
         ccv
     )
     
+    import re
+    art_url = box_art
+    art_url = re.sub(r'\{width\}x\{height\}', '600x800', art_url)
+    art_url = re.sub(r'\d+x\d+', '600x800', art_url)
+    if not art_url:
+        art_url = "https://static-cdn.jtvnw.net/ttv-static/404_boxart-600x800.jpg"
+
     return schemas.Recommendation(
         game_id=game_id,
         game_name=game_name,
         discoverability_score=round(score * 100, 2),
         avg_viewers_per_channel=round(metrics["total_viewers"] / (metrics["total_channels"] if metrics["total_channels"] > 0 else 1), 2),
         saturation_percent=round(metrics["top_10_share"] * 100, 2),
-        box_art_url=box_art.replace("{width}", "600").replace("{height}", "800") if box_art else "https://static-cdn.jtvnw.net/ttv-static/404_boxart-600x800.jpg"
+        box_art_url=art_url
     )
 
 def run_system_update():
