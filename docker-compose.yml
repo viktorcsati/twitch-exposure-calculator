@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: .
+    container_name: twitch-exposure-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: always
+
+# Note: In Phase 2, we will add the React frontend service here
