@@ -17,6 +17,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Twitch Exposure API", lifespan=lifespan)
 
+# Load version
+VERSION = "unknown"
+if os.path.exists("version.txt"):
+    with open("version.txt", "r") as f:
+        VERSION = f.read().strip()
+
 def get_db():
     db = SessionLocal()
     try: yield db
@@ -27,7 +33,8 @@ async def get_status(db: Session = Depends(get_db)):
     last_update = db.query(func.max(models.GameMetrics.timestamp)).scalar()
     return {
         "last_update": last_update,
-        "is_worker_running": True
+        "is_worker_running": True,
+        "version": VERSION
     }
 
 @app.post("/collect-now")

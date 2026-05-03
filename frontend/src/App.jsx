@@ -7,6 +7,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
+  const [version, setVersion] = useState('...')
   const [hideNonGames, setHideNonGames] = useState(true)
 
   const fetchRecs = async (val = ccv) => {
@@ -14,18 +15,19 @@ function App() {
     try {
       const resp = await fetch(`/api/recommend?ccv=${val}`)
       let data = await resp.json()
+      
       if (hideNonGames) {
-        const ignore = ["ASMR", "Chatting", "Art", "Zoos", "Pools", "Hot Tubs", "Music", "Talk Shows", "Events", "Software"]
-        data = data.filter(g => !ignore.some(k => g.game_name.includes(k)))
+        // More precise blacklist
+        const blacklist = ["ASMR", "Chatting", "Pools", "Hot Tubs", "Art", "Zoos", "Animals", "Music", "Talk Shows", "Software", "Creative", "Makers", "Beauty"]
+        data = data.filter(g => !blacklist.some(k => g.game_name.toLowerCase().includes(k.toLowerCase())))
       }
+      
       setRecommendations(data)
       
-      // Also fetch status for last update time
       const statusResp = await fetch('/api/status')
       const statusData = await statusResp.json()
-      if (statusData.last_update) {
-        setLastUpdate(new Date(statusData.last_update).toLocaleString())
-      }
+      if (statusData.last_update) setLastUpdate(new Date(statusData.last_update).toLocaleString())
+      if (statusData.version) setVersion(statusData.version)
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -87,7 +89,7 @@ function App() {
           <div className="nav-section system">
             <label>SYSTEM SETTINGS</label>
             <button className="action-btn secondary small" onClick={() => triggerUpdate('code')}>Update App Code</button>
-            <div className="system-note">v1.0.1 • Git Bridge</div>
+            <div className="system-note">v{version} • Git Bridge</div>
           </div>
         </div>
       </nav>
@@ -100,20 +102,27 @@ function App() {
 
         {loading ? <div className="loader">Analyzing...</div> : (
           <div className="grid">
-            {recommendations.map(game => (
-              <div key={game.game_id} className="card">
-                <div className="rank" style={{ color: game.discoverability_score > 60 ? '#00ffa3' : '#ff4b4b' }}>
-                  {game.discoverability_score}%
-                </div>
-                <img src={game.box_art_url} alt="" />
-                <div className="info">
-                  <h3>{game.game_name}</h3>
-                  <div className="meter"><div style={{ width: `${game.saturation_percent}%` }}></div></div>
-                  <div className="meta">Saturation: {game.saturation_percent}%</div>
-                  <div className="meta">{game.avg_viewers_per_channel} view/chnl</div>
-                </div>
+            {recommendations.length === 0 ? (
+              <div className="no-data-msg">
+                <h3>No categories found.</h3>
+                <p>Try turning off "Gaming Only" or clicking "Refresh Metrics".</p>
               </div>
-            ))}
+            ) : (
+              recommendations.map(game => (
+                <div key={game.game_id} className="card">
+                  <div className="rank" style={{ color: game.discoverability_score > 60 ? '#00ffa3' : '#ff4b4b' }}>
+                    {game.discoverability_score}%
+                  </div>
+                  <img src={game.box_art_url} alt="" />
+                  <div className="info">
+                    <h3>{game.game_name}</h3>
+                    <div className="meter"><div style={{ width: `${game.saturation_percent}%` }}></div></div>
+                    <div className="meta">Saturation: {game.saturation_percent}%</div>
+                    <div className="meta">{game.avg_viewers_per_channel} view/chnl</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
       </main>
