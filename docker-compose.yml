@@ -6,6 +6,8 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+      - .:/app/host_code  # Mount project root to allow git pull
+      - /var/run/docker.sock:/var/run/docker.sock # Allow container to restart itself
     env_file:
       - .env
     restart: always

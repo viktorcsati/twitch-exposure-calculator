@@ -5,137 +5,98 @@ function App() {
   const [recommendations, setRecommendations] = useState([])
   const [ccv, setCcv] = useState(10)
   const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
+  const [status, setStatus] = useState(null)
   const [hideNonGames, setHideNonGames] = useState(true)
 
-  const nonGameKeywords = ["ASMR", "Chatting", "Art", "Zoos", "Pools", "Hot Tubs", "Music", "Talk Shows", "Events", "Software", "Just Chatting"]
-
-  const fetchRecs = async (currentCcv) => {
+  const fetchRecs = async (val = ccv) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/recommend?ccv=${currentCcv || ccv}`)
-      let data = await response.json()
+      const resp = await fetch(`/api/recommend?ccv=${val}`)
+      let data = await resp.json()
       if (hideNonGames) {
-        data = data.filter(game => !nonGameKeywords.some(k => game.game_name.toLowerCase().includes(k.toLowerCase())))
+        const ignore = ["ASMR", "Chatting", "Art", "Zoos", "Pools", "Hot Tubs", "Music", "Talk Shows", "Events", "Software"]
+        data = data.filter(g => !ignore.some(k => g.game_name.includes(k)))
       }
       setRecommendations(data)
-    } catch (error) {
-      console.error("Failed to fetch:", error)
-    }
+    } catch (e) { console.error(e) }
     setLoading(false)
   }
 
-  const handleUpdateData = async () => {
-    setUpdating(true)
+  const triggerUpdate = async (type) => {
+    setStatus(type === 'code' ? 'Updating App Code...' : 'Refreshing Twitch Data...')
     try {
-      const response = await fetch('/api/collect-now', { method: 'POST' })
-      if (response.ok) {
-        await new Promise(resolve => setTimeout(resolve, 5000))
-        await fetchRecs()
+      const url = type === 'code' ? '/api/system/update' : '/api/collect-now'
+      await fetch(url, { method: 'POST' })
+      if (type === 'code') {
+        setTimeout(() => window.location.reload(), 45000)
+      } else {
+        setTimeout(() => { fetchRecs(); setStatus(null); }, 5000)
       }
-    } catch (error) {
-      console.error("Update failed:", error)
-    }
-    setUpdating(false)
+    } catch (e) { setStatus("Error occurred.") }
   }
 
-  const syncCcv = async () => {
+  const syncStats = async () => {
     try {
       const resp = await fetch('/api/user-stats')
-      const stats = await resp.json()
-      if (stats.ccv !== undefined) { 
-        setCcv(stats.ccv)
-        fetchRecs(stats.ccv)
-      }
-    } catch (e) { 
-      console.error("Sync failed", e)
-    }
+      const data = await resp.json()
+      if (data.ccv !== undefined) { setCcv(data.ccv); fetchRecs(data.ccv); }
+    } catch (e) { alert("Check .env for channel name") }
   }
 
-  useEffect(() => {
-    fetchRecs()
-  }, [hideNonGames])
+  useEffect(() => { fetchRecs() }, [hideNonGames])
 
   return (
-    <div className="dashboard-root">
-      <header className="main-header">
-        <div className="header-left">
-          <h1>Twitch Exposure <span className="highlight">Calculator</span></h1>
-          <div className="header-actions">
-            <button 
-              className="refresh-btn" 
-              onClick={handleUpdateData}
-              disabled={updating}
-            >
-              {updating ? 'Updating...' : 'Refresh Database'}
-            </button>
-            <label className="filter-toggle">
-              <input 
-                type="checkbox" 
-                checked={hideNonGames} 
-                onChange={() => setHideNonGames(!hideNonGames)} 
-              />
-              Gaming Only
-            </label>
+    <div className="app-container">
+      <nav className="sidebar">
+        <div className="logo">T-EXPOSURE</div>
+        <div className="nav-section">
+          <label>CONFIG</label>
+          <div className="input-card">
+            <span>Avg Viewers</span>
+            <input type="number" value={ccv} onChange={e => setCcv(e.target.value)} onBlur={() => fetchRecs()} />
+            <button className="ghost-btn" onClick={syncStats}>Sync Twitch</button>
           </div>
         </div>
-        
-        <div className="header-right">
-          <div className="stats-panel">
-            <label>Your Avg Viewers:</label>
-            <div className="ccv-controls">
-              <input 
-                type="number" 
-                value={ccv} 
-                onChange={(e) => setCcv(parseInt(e.target.value) || 0)}
-                onBlur={() => fetchRecs()}
-              />
-              <button className="sync-btn" onClick={syncCcv}>Sync</button>
-            </div>
-            <p className="system-note">Terminal: <code>git pull</code> for app updates</p>
-          </div>
+        <div className="nav-section">
+          <label>FILTERS</label>
+          <label className="switch">
+            <input type="checkbox" checked={hideNonGames} onChange={() => setHideNonGames(!hideNonGames)} />
+            Gaming Only
+          </label>
         </div>
-      </header>
+        <div className="nav-section system">
+          <label>SYSTEM</label>
+          <button className="action-btn data" onClick={() => triggerUpdate('data')}>Refresh Metrics</button>
+          <button className="action-btn git" onClick={() => triggerUpdate('code')}>Update App Code</button>
+        </div>
+      </nav>
 
-      {loading && !updating ? (
-        <div className="status-msg">Analyzing Twitch...</div>
-      ) : (
-        <div className="results-grid">
-          {recommendations.length === 0 ? (
-             <div className="status-msg">
-               No data. Click Refresh to begin.
-             </div>
-          ) : (
-            recommendations.map((game) => (
-              <div key={game.game_id} className="game-card">
-                <div className="score-label" style={{ 
-                  backgroundColor: game.discoverability_score > 70 ? '#2ecc71' : 
-                                   game.discoverability_score > 40 ? '#f1c40f' : '#e74c3c' 
-                }}>
+      <main className="content">
+        <header>
+          <h2>Recommended Categories</h2>
+          {status && <div className="status-toast">{status}</div>}
+        </header>
+
+        {loading ? <div className="loader">Analyzing...</div> : (
+          <div className="grid">
+            {recommendations.map(game => (
+              <div key={game.game_id} className="card">
+                <div className="rank" style={{ color: game.discoverability_score > 60 ? '#00ffa3' : '#ff4b4b' }}>
                   {game.discoverability_score}%
                 </div>
-                <div className="art-wrapper">
-                  <img src={game.box_art_url} alt={game.game_name} />
-                </div>
-                <div className="card-content">
+                <img src={game.box_art_url} alt="" />
+                <div className="info">
                   <h3>{game.game_name}</h3>
-                  <div className="stat-row">
-                    <span>Saturation: {game.saturation_percent}%</span>
-                    <div className="meter-bg">
-                      <div className="meter-fill" style={{ width: `${game.saturation_percent}%`, backgroundColor: game.saturation_percent > 80 ? '#e74c3c' : '#3498db' }}></div>
-                    </div>
-                  </div>
-                  <div className="sub-stats">
-                    {game.avg_viewers_per_channel} viewers/channel
-                  </div>
+                  <div className="meter"><div style={{ width: `${game.saturation_percent}%` }}></div></div>
+                  <div className="meta">Saturation: {game.saturation_percent}%</div>
+                  <div className="meta">{game.avg_viewers_per_channel} view/chnl</div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   )
 }
-
 export default App
