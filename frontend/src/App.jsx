@@ -12,25 +12,61 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [pinnedGames, setPinnedGames] = useState([])
   const [isSearching, setIsSearching] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault()
-    if (!searchQuery.trim()) return
-    
+  // Debounced search for suggestions
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.length > 2) {
+        try {
+          const resp = await fetch(`/api/search/suggestions?q=${encodeURIComponent(searchQuery)}`)
+          const data = await resp.json()
+          setSuggestions(data)
+          setShowSuggestions(true)
+        } catch (e) { console.error(e) }
+      } else {
+        setSuggestions([])
+        setShowSuggestions(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const selectGame = async (game) => {
     setIsSearching(true)
+    setShowSuggestions(false)
     try {
-      const resp = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&ccv=${ccv}`)
-      if (!resp.ok) throw new Error("Game not found")
+      const resp = await fetch(`/api/search?id=${game.id}&q=${encodeURIComponent(game.name)}&ccv=${ccv}`)
       const data = await resp.json()
-      
       setPinnedGames(prev => {
         const exists = prev.some(g => g.game_id === data.game_id)
         if (exists) return prev
         return [data, ...prev]
       })
       setSearchQuery('')
-    } catch (e) { alert("Game not found or error occurred.") }
+    } catch (e) { alert("Error calculating score.") }
     setIsSearching(false)
+  }
+
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault()
+    if (!searchQuery.trim()) return
+    
+    // Use first suggestion if available, else generic search
+    if (suggestions.length > 0) {
+      selectGame(suggestions[0])
+    } else {
+      setIsSearching(true)
+      try {
+        const resp = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&ccv=${ccv}`)
+        if (!resp.ok) throw new Error("Game not found")
+        const data = await resp.json()
+        setPinnedGames(prev => [data, ...prev])
+        setSearchQuery('')
+      } catch (e) { alert("Game not found.") }
+      setIsSearching(false)
+    }
   }
 
   const unpinGame = (id) => {
@@ -144,17 +180,30 @@ function App() {
 
           <div className="nav-section">
             <label>SEARCH GAME</label>
-            <form onSubmit={handleSearch} className="input-card">
-              <input 
-                type="text" 
-                placeholder="Game name..." 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-              <button type="submit" className="ghost-btn" disabled={isSearching}>
-                {isSearching ? '...' : 'Pin Score'}
-              </button>
-            </form>
+            <div className="search-container">
+              <form onSubmit={handleSearch} className="input-card">
+                <input 
+                  type="text" 
+                  placeholder="Game name..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                />
+                <button type="submit" className="ghost-btn" disabled={isSearching}>
+                  {isSearching ? '...' : 'Pin Score'}
+                </button>
+              </form>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="suggestions-dropdown">
+                  {suggestions.map(g => (
+                    <div key={g.id} className="suggestion-item" onClick={() => selectGame(g)}>
+                      <img src={g.box_art_url.replace('{width}', '30').replace('{height}', '40')} alt="" />
+                      <span>{g.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="nav-section">

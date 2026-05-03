@@ -59,17 +59,38 @@ async def get_user_stats():
 async def recommend_games(ccv: int = Query(0), db: Session = Depends(get_db)):
     return analytics.get_recommendations(db, user_ccv=ccv)
 
-@app.get("/search", response_model=schemas.Recommendation)
-async def search_game(q: str = Query(...), ccv: int = Query(0)):
+@app.get("/search/suggestions")
+async def search_suggestions(q: str = Query(...)):
     client = twitch_api.TwitchClient()
     results = await client.search_categories(q)
-    if not results:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Game not found")
+    return [{"id": g["id"], "name": g["name"], "box_art_url": g["box_art_url"]} for g in results[:10]]
+
+@app.get("/search", response_model=schemas.Recommendation)
+async def search_game(q: str = Query(None), id: str = Query(None), ccv: int = Query(0)):
+    client = twitch_api.TwitchClient()
     
-    # Take the first result
-    game = results[0]
-    metrics = await client.get_game_metrics(game["id"])
+    game_id = id
+    game_name = q
+    box_art = ""
+
+    if not game_id:
+        results = await client.search_categories(q)
+        if not results:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Game not found")
+        game_id = results[0]["id"]
+        game_name = results[0]["name"]
+        box_art = results[0]["box_art_url"]
+    else:
+        # If we have an ID, we still want the name and box art for the response
+        # We could fetch this or trust the frontend sent enough info (but schemas.Recommendation needs it)
+        # For simplicity, let's search if name is missing
+        if not game_name:
+            results = await client.search_categories(q or "") # This is a bit weak, better to have a get_game by ID
+            game_name = next((g["name"] for g in results if g["id"] == game_id), "Unknown")
+            box_art = next((g["box_art_url"] for g in results if g["id"] == game_id), "")
+
+    metrics = await client.get_game_metrics(game_id)
     
     score = analytics.calculate_score(
         metrics["total_viewers"],
@@ -79,12 +100,12 @@ async def search_game(q: str = Query(...), ccv: int = Query(0)):
     )
     
     return schemas.Recommendation(
-        game_id=game["id"],
-        game_name=game["name"],
+        game_id=game_id,
+        game_name=game_name,
         discoverability_score=round(score * 100, 2),
         avg_viewers_per_channel=round(metrics["total_viewers"] / (metrics["total_channels"] if metrics["total_channels"] > 0 else 1), 2),
         saturation_percent=round(metrics["top_10_share"] * 100, 2),
-        box_art_url=game["box_art_url"].replace("{width}", "188").replace("{height}", "250")
+        box_art_url=box_art.replace("{width}", "188").replace("{height}", "250") if box_art else "https://static-cdn.jtvnw.net/ttv-static/404_boxart-188x250.jpg"
     )
 
 def run_system_update():

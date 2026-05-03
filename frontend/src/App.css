@@ -90,7 +90,50 @@ input[type="number"] {
   font-size: 1.2rem;
 }
 
-.unpin-btn:hover { background: #ff4b4b; }
+.search-container {
+  position: relative;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #000;
+  border: 1px solid #3a3a3d;
+  border-radius: 8px;
+  margin-top: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #18181b;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: #18181b; }
+
+.suggestion-item img {
+  width: 30px;
+  height: 40px;
+  border-radius: 4px;
+}
+
+.suggestion-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .action-btn {
   width: 100%;
