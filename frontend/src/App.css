@@ -4,6 +4,7 @@
   --card-bg: #18181b;
   --accent: #9147ff;
   --text: #efeff1;
+  --text-muted: #adadb8;
 }
 
 body {
@@ -25,7 +26,7 @@ body {
   padding: 30px;
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  justify-content: space-between;
 }
 
 .logo {
@@ -33,6 +34,11 @@ body {
   font-size: 1.5rem;
   letter-spacing: -1px;
   color: var(--accent);
+  margin-bottom: 40px;
+}
+
+.nav-section {
+  margin-bottom: 40px;
 }
 
 .nav-section label {
@@ -69,13 +75,27 @@ input[type="number"] {
   border: none;
   font-weight: 800;
   cursor: pointer;
-  margin-bottom: 10px;
   transition: opacity 0.2s;
 }
 
-.action-btn.data { background: #262626; color: white; }
-.action-btn.git { background: var(--accent); color: white; }
+.action-btn.primary { background: var(--accent); color: white; }
+.action-btn.secondary { background: #262626; color: white; border: 1px solid #3a3a3d; }
+.action-btn.small { padding: 8px; font-size: 0.8rem; font-weight: 600; }
 .action-btn:hover { opacity: 0.8; }
+
+.last-updated {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.system-note {
+  font-size: 0.65rem;
+  color: #3a3a3d;
+  margin-top: 10px;
+  text-align: center;
+}
 
 .ghost-btn {
   background: transparent;

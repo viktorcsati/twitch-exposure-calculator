@@ -6,6 +6,7 @@ function App() {
   const [ccv, setCcv] = useState(10)
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState(null)
+  const [lastUpdate, setLastUpdate] = useState(null)
   const [hideNonGames, setHideNonGames] = useState(true)
 
   const fetchRecs = async (val = ccv) => {
@@ -18,12 +19,19 @@ function App() {
         data = data.filter(g => !ignore.some(k => g.game_name.includes(k)))
       }
       setRecommendations(data)
+      
+      // Also fetch status for last update time
+      const statusResp = await fetch('/api/status')
+      const statusData = await statusResp.json()
+      if (statusData.last_update) {
+        setLastUpdate(new Date(statusData.last_update).toLocaleString())
+      }
     } catch (e) { console.error(e) }
     setLoading(false)
   }
 
   const triggerUpdate = async (type) => {
-    setStatus(type === 'code' ? 'Updating App Code...' : 'Refreshing Twitch Data...')
+    setStatus(type === 'code' ? 'Updating App Code...' : 'Refreshing Metrics...')
     try {
       const url = type === 'code' ? '/api/system/update' : '/api/collect-now'
       await fetch(url, { method: 'POST' })
@@ -48,26 +56,39 @@ function App() {
   return (
     <div className="app-container">
       <nav className="sidebar">
-        <div className="logo">T-EXPOSURE</div>
-        <div className="nav-section">
-          <label>CONFIG</label>
-          <div className="input-card">
-            <span>Avg Viewers</span>
-            <input type="number" value={ccv} onChange={e => setCcv(e.target.value)} onBlur={() => fetchRecs()} />
-            <button className="ghost-btn" onClick={syncStats}>Sync Twitch</button>
+        <div className="sidebar-top">
+          <div className="logo">T-EXPOSURE</div>
+          
+          <div className="nav-section">
+            <label>CONFIG</label>
+            <div className="input-card">
+              <span>Avg Viewers</span>
+              <input type="number" value={ccv} onChange={e => setCcv(e.target.value)} onBlur={() => fetchRecs()} />
+              <button className="ghost-btn" onClick={syncStats}>Sync Twitch</button>
+            </div>
+          </div>
+
+          <div className="nav-section">
+            <label>FILTERS</label>
+            <label className="switch">
+              <input type="checkbox" checked={hideNonGames} onChange={() => setHideNonGames(!hideNonGames)} />
+              Gaming Only
+            </label>
+          </div>
+
+          <div className="nav-section">
+            <label>DATA CONTROL</label>
+            <button className="action-btn primary" onClick={() => triggerUpdate('data')}>Refresh Metrics</button>
+            {lastUpdate && <div className="last-updated">Last scan: {lastUpdate}</div>}
           </div>
         </div>
-        <div className="nav-section">
-          <label>FILTERS</label>
-          <label className="switch">
-            <input type="checkbox" checked={hideNonGames} onChange={() => setHideNonGames(!hideNonGames)} />
-            Gaming Only
-          </label>
-        </div>
-        <div className="nav-section system">
-          <label>SYSTEM</label>
-          <button className="action-btn data" onClick={() => triggerUpdate('data')}>Refresh Metrics</button>
-          <button className="action-btn git" onClick={() => triggerUpdate('code')}>Update App Code</button>
+
+        <div className="sidebar-bottom">
+          <div className="nav-section system">
+            <label>SYSTEM SETTINGS</label>
+            <button className="action-btn secondary small" onClick={() => triggerUpdate('code')}>Update App Code</button>
+            <div className="system-note">v1.0.1 • Git Bridge</div>
+          </div>
         </div>
       </nav>
 
