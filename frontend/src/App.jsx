@@ -17,8 +17,20 @@ function App() {
       let data = await resp.json()
       
       if (hideNonGames) {
-        const blacklist = ["ASMR", "Chatting", "Pools", "Hot Tubs", "Art", "Zoos", "Animals", "Music", "Talk Shows", "Events", "Software", "Creative", "Makers", "Beauty"]
-        data = data.filter(g => !blacklist.some(k => g.game_name.toLowerCase().includes(k.toLowerCase())))
+        const blacklist = ["Just Chatting", "Pools, Hot Tubs", "Talk Shows", "ASMR", "Art", "Zoos, Animals", "Music", "Software", "Makers & Crafting", "Beauty", "Events", "Creative"]
+        data = data.filter(g => {
+          const name = g.game_name.toLowerCase();
+          return !blacklist.some(k => {
+            const key = k.toLowerCase();
+            // Match if category name is exactly the keyword OR contains the keyword as a distinct concept
+            if (name === key) return true;
+            if (name.includes(` ${key}`) || name.includes(`${key} `)) return true;
+            // Special cases for common Twitch categories
+            if (key === "art" && name === "art") return true; 
+            if (key === "software" && name.includes("software")) return true;
+            return false;
+          });
+        })
       }
       
       setRecommendations(data)

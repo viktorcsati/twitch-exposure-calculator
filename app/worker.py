@@ -19,34 +19,46 @@ async def collect_twitch_data():
     
     try:
         top_games = await client.get_top_games(limit=50)
+        logger.info(f"Found {len(top_games)} top games. Fetching metrics...")
         
+        success_count = 0
         for game_data in top_games:
-            # Update or create game
-            game = db.query(models.Game).filter(models.Game.id == game_data["id"]).first()
-            if not game:
-                game = models.Game(
-                    id=game_data["id"],
-                    name=game_data["name"],
-                    box_art_url=game_data["box_art_url"]
+            try:
+                # Update or create game
+                game = db.query(models.Game).filter(models.Game.id == game_data["id"]).first()
+                if not game:
+                    game = models.Game(
+                        id=game_data["id"],
+                        name=game_data["name"],
+                        box_art_url=game_data["box_art_url"]
+                    )
+                    db.add(game)
+                    db.flush() # Ensure game is in DB for metrics FK
+                
+                # Fetch and save metrics
+                metrics_data = await client.get_game_metrics(game.id)
+                metrics = models.GameMetrics(
+                    game_id=game.id,
+                    timestamp=now,
+                    total_viewers=metrics_data["total_viewers"],
+                    total_channels=metrics_data["total_channels"],
+                    top_10_viewer_share=metrics_data["top_10_share"],
+                    median_viewers=metrics_data["median_viewers"]
                 )
-                db.add(game)
-            
-            # Fetch and save metrics
-            metrics_data = await client.get_game_metrics(game.id)
-            metrics = models.GameMetrics(
-                game_id=game.id,
-                timestamp=now,
-                total_viewers=metrics_data["total_viewers"],
-                total_channels=metrics_data["total_channels"],
-                top_10_viewer_share=metrics_data["top_10_share"],
-                median_viewers=metrics_data["median_viewers"]
-            )
-            db.add(metrics)
+                db.add(metrics)
+                success_count += 1
+                
+                if success_count % 10 == 0:
+                    logger.info(f"Processed {success_count}/50 games...")
+                    
+            except Exception as ge:
+                logger.error(f"Error fetching metrics for game {game_data.get('name')}: {ge}")
+                continue # Skip this game and continue
             
         db.commit()
-        logger.info(f"Successfully collected metrics for {len(top_games)} games at {now}")
+        logger.info(f"Successfully collected metrics for {success_count} games at {now}")
     except Exception as e:
-        logger.error(f"Error during data collection: {e}")
+        logger.error(f"Critical error during data collection: {e}")
         db.rollback()
     finally:
         db.close()
