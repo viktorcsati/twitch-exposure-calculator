@@ -88,6 +88,17 @@ class TwitchClient:
             response.raise_for_status()
             return response.json()["data"]
 
+    async def search_categories(self, query: str) -> List[Dict[str, Any]]:
+        headers = await self.get_headers()
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/search/categories",
+                headers=headers,
+                params={"query": query}
+            )
+            response.raise_for_status()
+            return response.json()["data"]
+
     async def get_game_metrics(self, game_id: str) -> Dict[str, Any]:
         headers = await self.get_headers()
         async with httpx.AsyncClient() as client:

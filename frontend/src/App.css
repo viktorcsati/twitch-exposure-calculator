@@ -58,15 +58,39 @@ body {
   gap: 10px;
 }
 
-input[type="number"] {
+input[type="number"], input[type="text"] {
   background: #18181b;
   border: 1px solid #3a3a3d;
   color: white;
   padding: 10px;
   border-radius: 4px;
+  font-size: 1rem;
+}
+
+input[type="number"] {
   font-size: 1.2rem;
   font-weight: 800;
 }
+
+.unpin-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0,0,0,0.7);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.unpin-btn:hover { background: #ff4b4b; }
 
 .action-btn {
   width: 100%;

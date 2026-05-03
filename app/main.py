@@ -59,6 +59,34 @@ async def get_user_stats():
 async def recommend_games(ccv: int = Query(0), db: Session = Depends(get_db)):
     return analytics.get_recommendations(db, user_ccv=ccv)
 
+@app.get("/search", response_model=schemas.Recommendation)
+async def search_game(q: str = Query(...), ccv: int = Query(0)):
+    client = twitch_api.TwitchClient()
+    results = await client.search_categories(q)
+    if not results:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Game not found")
+    
+    # Take the first result
+    game = results[0]
+    metrics = await client.get_game_metrics(game["id"])
+    
+    score = analytics.calculate_score(
+        metrics["total_viewers"],
+        metrics["total_channels"],
+        metrics["top_10_share"],
+        ccv
+    )
+    
+    return schemas.Recommendation(
+        game_id=game["id"],
+        game_name=game["name"],
+        discoverability_score=round(score * 100, 2),
+        avg_viewers_per_channel=round(metrics["total_viewers"] / (metrics["total_channels"] if metrics["total_channels"] > 0 else 1), 2),
+        saturation_percent=round(metrics["top_10_share"] * 100, 2),
+        box_art_url=game["box_art_url"].replace("{width}", "188").replace("{height}", "250")
+    )
+
 def run_system_update():
     log_file = "/app/data/update.log"
     with open(log_file, "a") as f:

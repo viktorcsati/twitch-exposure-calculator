@@ -9,6 +9,33 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null)
   const [version, setVersion] = useState('...')
   const [hideNonGames, setHideNonGames] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [pinnedGames, setPinnedGames] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault()
+    if (!searchQuery.trim()) return
+    
+    setIsSearching(true)
+    try {
+      const resp = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&ccv=${ccv}`)
+      if (!resp.ok) throw new Error("Game not found")
+      const data = await resp.json()
+      
+      setPinnedGames(prev => {
+        const exists = prev.some(g => g.game_id === data.game_id)
+        if (exists) return prev
+        return [data, ...prev]
+      })
+      setSearchQuery('')
+    } catch (e) { alert("Game not found or error occurred.") }
+    setIsSearching(false)
+  }
+
+  const unpinGame = (id) => {
+    setPinnedGames(prev => prev.filter(g => g.game_id !== id))
+  }
 
   const formatLastUpdate = (timestamp) => {
     if (!timestamp) return null;
@@ -116,6 +143,21 @@ function App() {
           </div>
 
           <div className="nav-section">
+            <label>SEARCH GAME</label>
+            <form onSubmit={handleSearch} className="input-card">
+              <input 
+                type="text" 
+                placeholder="Game name..." 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              <button type="submit" className="ghost-btn" disabled={isSearching}>
+                {isSearching ? '...' : 'Pin Score'}
+              </button>
+            </form>
+          </div>
+
+          <div className="nav-section">
             <label>FILTERS</label>
             <label className="switch">
               <input type="checkbox" checked={hideNonGames} onChange={() => setHideNonGames(!hideNonGames)} />
@@ -147,14 +189,17 @@ function App() {
 
         {loading ? <div className="loader">Analyzing...</div> : (
           <div className="grid">
-            {recommendations.length === 0 ? (
+            {[...pinnedGames, ...recommendations.filter(r => !pinnedGames.some(p => p.game_id === r.game_id))].length === 0 ? (
               <div className="no-data-msg">
                 <h3>No categories found.</h3>
                 <p>Try turning off "Gaming Only" or clicking "Refresh Metrics".</p>
               </div>
             ) : (
-              recommendations.map(game => (
+              [...pinnedGames, ...recommendations.filter(r => !pinnedGames.some(p => p.game_id === r.game_id))].map(game => (
                 <div key={game.game_id} className="card">
+                  {pinnedGames.some(p => p.game_id === game.game_id) && (
+                    <button className="unpin-btn" onClick={() => unpinGame(game.game_id)}>×</button>
+                  )}
                   <div className="rank" style={{ color: game.discoverability_score > 60 ? '#00ffa3' : '#ff4b4b' }}>
                     {game.discoverability_score}%
                   </div>
