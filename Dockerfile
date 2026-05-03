@@ -15,9 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code AND version file
 COPY ./app ./app
 COPY ./docker-compose.yml ./docker-compose.yml
+COPY ./version.txt ./version.txt
 
 # Create directory for SQLite database
 RUN mkdir -p /app/data
