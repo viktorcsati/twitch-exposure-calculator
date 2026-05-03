@@ -10,10 +10,20 @@ function App() {
   const [version, setVersion] = useState('...')
   const [hideNonGames, setHideNonGames] = useState(true)
 
+  const fetchStatus = async () => {
+    try {
+      const resp = await fetch('/api/status')
+      const data = await resp.json()
+      if (data.last_update) setLastUpdate(new Date(data.last_update).toLocaleString())
+      if (data.version) setVersion(data.version)
+    } catch (e) { console.error("Status check failed", e) }
+  }
+
   const fetchRecs = async (val = ccv) => {
     setLoading(true)
     try {
       const resp = await fetch(`/api/recommend?ccv=${val}`)
+      if (!resp.ok) throw new Error("Failed to fetch recs")
       let data = await resp.json()
       
       if (hideNonGames) {
@@ -32,13 +42,7 @@ function App() {
           });
         })
       }
-      
       setRecommendations(data)
-      
-      const statusResp = await fetch('/api/status')
-      const statusData = await statusResp.json()
-      if (statusData.last_update) setLastUpdate(new Date(statusData.last_update).toLocaleString())
-      if (statusData.version) setVersion(statusData.version)
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -51,7 +55,7 @@ function App() {
       if (type === 'code') {
         setTimeout(() => window.location.reload(), 45000)
       } else {
-        setTimeout(() => { fetchRecs(); setStatus(null); }, 5000)
+        setTimeout(() => { fetchRecs(); fetchStatus(); setStatus(null); }, 5000)
       }
     } catch (e) { setStatus("Error occurred.") }
   }
@@ -71,6 +75,7 @@ function App() {
   // Initial load
   useEffect(() => {
     const init = async () => {
+      fetchStatus()
       const currentCcv = await syncCcv()
       fetchRecs(currentCcv)
     }

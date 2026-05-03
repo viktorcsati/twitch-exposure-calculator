@@ -18,18 +18,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Twitch Exposure API", lifespan=lifespan)
 
 # Load version
-VERSION = "unknown"
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-version_path = os.path.join(BASE_DIR, "version.txt")
-
-if os.path.exists(version_path):
-    with open(version_path, "r") as f:
-        VERSION = f.read().strip()
-else:
-    # Fallback for different build contexts
-    if os.path.exists("version.txt"):
+VERSION = "1.0.6-dev"
+try:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    v_path = os.path.join(BASE_DIR, "version.txt")
+    if os.path.exists(v_path):
+        with open(v_path, "r") as f:
+            VERSION = f.read().strip()
+    elif os.path.exists("version.txt"):
         with open("version.txt", "r") as f:
             VERSION = f.read().strip()
+except Exception:
+    pass
 
 def get_db():
     db = SessionLocal()
