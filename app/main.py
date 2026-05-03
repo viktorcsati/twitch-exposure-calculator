@@ -60,10 +60,17 @@ async def recommend_games(ccv: int = Query(0), db: Session = Depends(get_db)):
     return analytics.get_recommendations(db, user_ccv=ccv)
 
 def run_system_update():
-    subprocess.run(["git", "-C", "/app/host_code", "pull", "origin", "main"])
-    subprocess.run(["docker", "compose", "-f", "/app/host_code/docker-compose.yml", "up", "-d", "--build"])
+    log_file = "/app/data/update.log"
+    with open(log_file, "a") as f:
+        f.write(f"\n--- Update Started at {os.popen('date').read().strip()} ---\n")
+        f.write("Configuring safe directory...\n")
+        subprocess.run(["git", "config", "--global", "--add", "safe.directory", "/app/host_code"], stderr=f, stdout=f)
+        f.write("Pulling latest code...\n")
+        subprocess.run(["git", "-C", "/app/host_code", "pull", "origin", "main"], stderr=f, stdout=f)
+        f.write("Restarting containers...\n")
+        subprocess.run(["docker", "compose", "-f", "/app/host_code/docker-compose.yml", "up", "-d", "--build"], stderr=f, stdout=f)
 
 @app.post("/system/update")
 async def update_app(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_system_update)
-    return {"status": "Update initiated"}
+    return {"status": "Update initiated. Logging to /app/data/update.log"}
