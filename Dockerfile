@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./app ./app
 COPY ./docker-compose.yml ./docker-compose.yml
 COPY ./version.txt ./version.txt
+COPY ./update.sh ./update.sh
+RUN chmod +x ./update.sh
 
 # Create directory for SQLite database
 RUN mkdir -p /app/data
