@@ -1,27 +1,25 @@
 #!/bin/bash
-# Standalone update script - v2 (Fully detached)
+# Standalone update script - v3 (Bulletproof Detachment)
 LOG_FILE="/app/data/update.log"
 HOST_CODE_DIR="/app/host_code"
 
-# Ensure log directory exists
 mkdir -p /app/data
 
 {
-    echo "--- UPDATE STARTED: $(date) ---"
+    echo "--- RELIABLE UPDATE STARTED: $(date) ---"
     
-    # 1. Fix Git security permissions
+    # 1. Force Git into a clean state
     git config --global --add safe.directory "$HOST_CODE_DIR"
-    
-    # 2. Pull latest code
-    echo "Pulling latest code from origin/main..."
     cd "$HOST_CODE_DIR" || exit
+    echo "Cleaning and fetching..."
+    git clean -fd
     git fetch origin main
     git reset --hard origin/main
     
-    # 3. Rebuild and Restart in a way that survives container death
-    echo "Rebuilding and restarting containers (Background)..."
-    # We use ( ) & to background the compose command entirely
-    (sleep 2 && docker compose -f "$HOST_CODE_DIR/docker-compose.yml" up -d --build) &
+    # 2. Run Docker Compose via NOHUP
+    # We use a subshell and redirect all I/O to ensure no SIGHUP when parent dies
+    echo "Launching rebuild in detached session..."
+    nohup bash -c "sleep 2 && docker compose -f $HOST_CODE_DIR/docker-compose.yml up -d --build" > /dev/null 2>&1 &
     
-    echo "Update process dispatched. Container will restart shortly."
+    echo "Update dispatched successfully. Container restart imminent."
 } >> "$LOG_FILE" 2>&1

@@ -51,7 +51,7 @@ def get_recommendations(db: Session, user_ccv: int = 0) -> List[schemas.Recommen
             discoverability_score=round(score * 100, 2),
             avg_viewers_per_channel=round(density, 2),
             saturation_percent=round(m.top_10_viewer_share * 100, 2),
-            box_art_url=m.game.box_art_url.replace("{width}", "188").replace("{height}", "250")
+            box_art_url=m.game.box_art_url.replace("{width}", "600").replace("{height}", "800")
         ))
 
     # Sort by score descending
