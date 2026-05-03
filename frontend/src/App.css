@@ -1,0 +1,114 @@
+:root {
+  --bg: #0e0e10;
+  --card: #18181b;
+  --text: #efeff1;
+  --accent: #9147ff;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+}
+
+.dashboard {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+  border-bottom: 1px solid #262626;
+  padding-bottom: 1rem;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 250px;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2rem;
+}
+
+.game-card {
+  background: var(--card);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s;
+  border: 1px solid transparent;
+}
+
+.game-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+}
+
+.score-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+}
+
+.game-info {
+  padding: 1rem;
+}
+
+h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.bar-bg {
+  background: #262626;
+  height: 6px;
+  border-radius: 3px;
+  margin-top: 4px;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.loader {
+  text-align: center;
+  margin-top: 5rem;
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+
+input[type=range] {
+  accent-color: var(--accent);
+}
