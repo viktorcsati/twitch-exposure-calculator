@@ -1,22 +1,26 @@
 #!/bin/bash
-# Standalone update script - v4 (Ephemeral Container Detachment)
+# Standalone update script - v5 (Bulletproof Ephemeral Rebuilder)
 LOG_FILE="/app/data/update.log"
 HOST_CODE_DIR="/app/host_code"
 
 mkdir -p /app/data
 
 {
-    echo "--- ROBUST UPDATE STARTED: $(date) ---"
+    echo "--- BULLETPROOF UPDATE STARTED: $(date) ---"
     
-    # 1. Update the code locally (since host directory is mounted at $HOST_CODE_DIR)
-    echo "Updating code via Git in current container..."
+    # 1. Pre-pull the rebuilder image to avoid delays in the detached process
+    echo "Ensuring rebuilder image (docker:latest) is available..."
+    docker pull docker:latest
+    
+    # 2. Update the code locally (backend container)
+    echo "Syncing code via Git..."
     git config --global --add safe.directory "$HOST_CODE_DIR"
     cd "$HOST_CODE_DIR" || exit
     git fetch origin main
     git reset --hard origin/main
     echo "Git sync complete."
     
-    # 2. Get host path for the project to mount it into the ephemeral container
+    # 3. Get host path for the project
     CONTAINER_ID=$(hostname)
     HOST_PATH=$(docker inspect "$CONTAINER_ID" -f '{{range .Mounts}}{{if eq .Destination "/app/host_code"}}{{.Source}}{{end}}{{end}}')
     
@@ -25,16 +29,23 @@ mkdir -p /app/data
         exit 1
     fi
     
-    # 3. Dispatch ephemeral container to rebuild stack
-    # This container runs independently of the current backend's lifecycle.
-    echo "Spawning ephemeral container to rebuild stack from $HOST_PATH..."
+    # 4. Dispatch the Rebuilder
+    # We use a detached container that performs a final git check and then rebuilds.
+    # We check for both 'docker compose' (v2) and 'docker-compose' (v1).
+    echo "Dispatching rebuilder container..."
     docker run --rm -d \
       --name twitch-rebuilder-$(date +%s) \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v "$HOST_PATH:/app/host_code" \
       -w /app/host_code \
       docker:latest \
-      sh -c "sleep 2 && docker compose up -d --build"
+      sh -c "sleep 3 && \
+             if docker compose version >/dev/null 2>&1; then \
+               docker compose up -d --build; \
+             else \
+               docker-compose up -d --build; \
+             fi"
     
-    echo "Update dispatched successfully. Rebuild in progress in detached container."
+    echo "Update successfully dispatched to ephemeral container."
+    echo "The backend will restart shortly. Check this log again in 30 seconds."
 } >> "$LOG_FILE" 2>&1

@@ -18,6 +18,16 @@ function App() {
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
 
+  // Robustly handle Twitch box art URLs
+  const getBoxArtUrl = (url, width = 285, height = 380) => {
+    if (!url) return 'https://static-cdn.jtvnw.net/ttv-static/404_boxart-600x800.jpg'
+    return url
+      .replace('{width}x{height}', `${width}x${height}`)
+      .replace('{width}', width)
+      .replace('{height}', height)
+      .replace(/\d+x\d+/, `${width}x${height}`)
+  }
+
   // Persist pinned games
   useEffect(() => {
     localStorage.setItem('pinnedGames', JSON.stringify(pinnedGames))
@@ -205,7 +215,7 @@ function App() {
                 <div className="suggestions-dropdown">
                   {suggestions.map(g => (
                     <div key={g.id} className="suggestion-item" onClick={() => selectGame(g)}>
-                      <img src={g.box_art_url.replace('{width}', '30').replace('{height}', '40')} alt="" />
+                      <img src={getBoxArtUrl(g.box_art_url, 30, 40)} alt="" />
                       <span>{g.name}</span>
                     </div>
                   ))}
@@ -260,7 +270,7 @@ function App() {
                   <div className="rank" style={{ color: game.discoverability_score > 60 ? '#00ffa3' : '#ff4b4b' }}>
                     {game.discoverability_score}%
                   </div>
-                  <img src={game.box_art_url.replace('{width}', '285').replace('{height}', '380')} alt="" />
+                  <img src={getBoxArtUrl(game.box_art_url)} alt="" />
                   <div className="info">
                     <h3>{game.game_name}</h3>
                     <div className="meter"><div style={{ width: `${game.saturation_percent}%` }}></div></div>
