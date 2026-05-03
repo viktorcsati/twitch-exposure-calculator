@@ -10,10 +10,18 @@ function App() {
   const [version, setVersion] = useState('...')
   const [hideNonGames, setHideNonGames] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [pinnedGames, setPinnedGames] = useState([])
+  const [pinnedGames, setPinnedGames] = useState(() => {
+    const saved = localStorage.getItem('pinnedGames')
+    return saved ? JSON.parse(saved) : []
+  })
   const [isSearching, setIsSearching] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // Persist pinned games
+  useEffect(() => {
+    localStorage.setItem('pinnedGames', JSON.stringify(pinnedGames))
+  }, [pinnedGames])
 
   // Debounced search for suggestions
   useEffect(() => {

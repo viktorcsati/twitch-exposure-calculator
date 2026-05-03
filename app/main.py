@@ -105,7 +105,7 @@ async def search_game(q: str = Query(None), id: str = Query(None), ccv: int = Qu
         discoverability_score=round(score * 100, 2),
         avg_viewers_per_channel=round(metrics["total_viewers"] / (metrics["total_channels"] if metrics["total_channels"] > 0 else 1), 2),
         saturation_percent=round(metrics["top_10_share"] * 100, 2),
-        box_art_url=box_art.replace("{width}", "188").replace("{height}", "250") if box_art else "https://static-cdn.jtvnw.net/ttv-static/404_boxart-188x250.jpg"
+        box_art_url=box_art.replace("{width}", "600").replace("{height}", "800") if box_art else "https://static-cdn.jtvnw.net/ttv-static/404_boxart-600x800.jpg"
     )
 
 def run_system_update():
