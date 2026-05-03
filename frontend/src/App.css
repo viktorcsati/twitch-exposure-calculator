@@ -3,6 +3,7 @@
   --card: #18181b;
   --text: #efeff1;
   --accent: #9147ff;
+  --accent-hover: #772ce8;
 }
 
 body {
@@ -21,10 +22,42 @@ body {
 header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 3rem;
   border-bottom: 1px solid #262626;
-  padding-bottom: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.update-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.2s;
+}
+
+.update-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.update-btn:disabled {
+  background: #3a3a3d;
+  cursor: not-allowed;
 }
 
 .controls {
@@ -32,6 +65,9 @@ header {
   flex-direction: column;
   gap: 0.5rem;
   min-width: 250px;
+  background: var(--card);
+  padding: 1rem;
+  border-radius: 8px;
 }
 
 .game-grid {
@@ -102,11 +138,21 @@ h3 {
   transition: width 0.3s;
 }
 
-.loader {
+.loader, .no-data {
   text-align: center;
   margin-top: 5rem;
   font-size: 1.2rem;
-  color: var(--accent);
+  color: var(--text);
+}
+
+.no-data button {
+  margin-top: 1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 input[type=range] {

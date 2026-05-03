@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: .
+    container_name: twitch-exposure-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: twitch-exposure-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
