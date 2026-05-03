@@ -260,7 +260,7 @@ function App() {
                   <div className="rank" style={{ color: game.discoverability_score > 60 ? '#00ffa3' : '#ff4b4b' }}>
                     {game.discoverability_score}%
                   </div>
-                  <img src={game.box_art_url} alt="" />
+                  <img src={game.box_art_url.replace('{width}', '285').replace('{height}', '380')} alt="" />
                   <div className="info">
                     <h3>{game.game_name}</h3>
                     <div className="meter"><div style={{ width: `${game.saturation_percent}%` }}></div></div>

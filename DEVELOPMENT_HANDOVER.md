@@ -14,8 +14,9 @@
 - **Versioning:** Robust version detection logic.
 
 ### In-Progress / Issues:
+- **Auto Updater:** NOT WORKING. Needs a complete architectural rethink as background shell dispatch is failing.
+- **Pinned Games:** NO PICTURE. Cards are appearing but images are not rendering correctly.
 - **Steam Integration:** Logic for fetching user library is planned.
-- **Historical Analysis:** DB contains timestamps, but UI lacks a chart view.
 
 ## 3. Immediate Next Steps
 1. **Phase 2 - Steam Integration:** 
