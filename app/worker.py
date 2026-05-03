@@ -4,6 +4,7 @@ from .database import SessionLocal, engine
 from . import models, twitch_api
 import asyncio
 import logging
+import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -12,6 +13,9 @@ async def collect_twitch_data():
     logger.info("Starting Twitch data collection task...")
     client = twitch_api.TwitchClient()
     db: Session = SessionLocal()
+    
+    # Use a single timestamp for the entire batch so they can be queried together
+    now = datetime.datetime.utcnow()
     
     try:
         top_games = await client.get_top_games(limit=50)
@@ -31,6 +35,7 @@ async def collect_twitch_data():
             metrics_data = await client.get_game_metrics(game.id)
             metrics = models.GameMetrics(
                 game_id=game.id,
+                timestamp=now,
                 total_viewers=metrics_data["total_viewers"],
                 total_channels=metrics_data["total_channels"],
                 top_10_viewer_share=metrics_data["top_10_share"],
@@ -39,7 +44,7 @@ async def collect_twitch_data():
             db.add(metrics)
             
         db.commit()
-        logger.info(f"Successfully collected metrics for {len(top_games)} games.")
+        logger.info(f"Successfully collected metrics for {len(top_games)} games at {now}")
     except Exception as e:
         logger.error(f"Error during data collection: {e}")
         db.rollback()
@@ -48,7 +53,6 @@ async def collect_twitch_data():
 
 def start_worker():
     scheduler = AsyncIOScheduler()
-    # Run immediately and then every 30 minutes
     scheduler.add_job(collect_twitch_data, 'interval', minutes=30)
     scheduler.start()
     return scheduler

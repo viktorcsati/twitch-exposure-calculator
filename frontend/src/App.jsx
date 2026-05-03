@@ -3,7 +3,7 @@ import './App.css'
 
 function App() {
   const [recommendations, setRecommendations] = useState([])
-  const [ccv, setCcv] = useState(10)
+  const [ccv, setCcv] = useState(0) // Start at 0, will be synced
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
@@ -17,8 +17,7 @@ function App() {
       let data = await resp.json()
       
       if (hideNonGames) {
-        // More precise blacklist
-        const blacklist = ["ASMR", "Chatting", "Pools", "Hot Tubs", "Art", "Zoos", "Animals", "Music", "Talk Shows", "Software", "Creative", "Makers", "Beauty"]
+        const blacklist = ["ASMR", "Chatting", "Pools", "Hot Tubs", "Art", "Zoos", "Animals", "Music", "Talk Shows", "Events", "Software", "Creative", "Makers", "Beauty"]
         data = data.filter(g => !blacklist.some(k => g.game_name.toLowerCase().includes(k.toLowerCase())))
       }
       
@@ -45,15 +44,31 @@ function App() {
     } catch (e) { setStatus("Error occurred.") }
   }
 
-  const syncStats = async () => {
+  const syncCcv = async () => {
     try {
       const resp = await fetch('/api/user-stats')
       const data = await resp.json()
-      if (data.ccv !== undefined) { setCcv(data.ccv); fetchRecs(data.ccv); }
-    } catch (e) { alert("Check .env for channel name") }
+      if (data.ccv !== undefined) { 
+        setCcv(data.ccv)
+        return data.ccv
+      }
+    } catch (e) { console.error("Sync failed", e) }
+    return ccv
   }
 
-  useEffect(() => { fetchRecs() }, [hideNonGames])
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      const currentCcv = await syncCcv()
+      fetchRecs(currentCcv)
+    }
+    init()
+  }, [])
+
+  // Reaction to state changes
+  useEffect(() => {
+    fetchRecs()
+  }, [hideNonGames])
 
   return (
     <div className="app-container">
@@ -65,8 +80,8 @@ function App() {
             <label>CONFIG</label>
             <div className="input-card">
               <span>Avg Viewers</span>
-              <input type="number" value={ccv} onChange={e => setCcv(e.target.value)} onBlur={() => fetchRecs()} />
-              <button className="ghost-btn" onClick={syncStats}>Sync Twitch</button>
+              <input type="number" value={ccv} onChange={e => setCcv(parseInt(e.target.value) || 0)} onBlur={() => fetchRecs()} />
+              <button className="ghost-btn" onClick={syncCcv}>Sync Twitch</button>
             </div>
           </div>
 
