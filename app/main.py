@@ -40,7 +40,7 @@ def get_db():
 async def get_status(db: Session = Depends(get_db)):
     last_update = db.query(func.max(models.GameMetrics.timestamp)).scalar()
     return {
-        "last_update": last_update,
+        "last_update": last_update.isoformat() if last_update else None,
         "is_worker_running": True,
         "version": VERSION
     }

@@ -10,11 +10,24 @@ function App() {
   const [version, setVersion] = useState('...')
   const [hideNonGames, setHideNonGames] = useState(true)
 
+  const formatLastUpdate = (timestamp) => {
+    if (!timestamp) return null;
+    const date = new Date(timestamp + "Z"); // Ensure it's treated as UTC
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return "Just now";
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    
+    return date.toLocaleString();
+  }
+
   const fetchStatus = async () => {
     try {
       const resp = await fetch('/api/status')
       const data = await resp.json()
-      if (data.last_update) setLastUpdate(new Date(data.last_update).toLocaleString())
+      if (data.last_update) setLastUpdate(formatLastUpdate(data.last_update))
       if (data.version) setVersion(data.version)
     } catch (e) { console.error("Status check failed", e) }
   }
