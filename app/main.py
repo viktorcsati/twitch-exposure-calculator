@@ -99,12 +99,7 @@ async def search_game(q: str = Query(None), id: str = Query(None), ccv: int = Qu
         ccv
     )
     
-    import re
-    art_url = box_art
-    art_url = re.sub(r'\{width\}x\{height\}', '600x800', art_url)
-    art_url = re.sub(r'\d+x\d+', '600x800', art_url)
-    if not art_url:
-        art_url = "https://static-cdn.jtvnw.net/ttv-static/404_boxart-600x800.jpg"
+    art_url = analytics.format_box_art_url(box_art)
 
     return schemas.Recommendation(
         game_id=game_id,
